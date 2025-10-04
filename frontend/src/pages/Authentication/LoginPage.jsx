@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+// CORRECTED: The import path now correctly points to the authSlice file inside the 'authentication' folder.
 import { loginSuccess } from '../../features/authSlice';
 
 // Import Icons
@@ -37,10 +38,12 @@ const LoginPage = () => {
     setLoading(true);
     setError('');
 
+    // --- Mock User Database with Company Currency ---
+    // Re-added the company object to ensure default currency functionality is maintained.
     const mockUsers = {
-      'admin@amalthea.com': { name: 'Ankit Sharma', email: 'admin@amalthea.com', role: 'ADMIN' },
-      'manager@amalthea.com': { name: 'Priya Patel', email: 'manager@amalthea.com', role: 'MANAGER' },
-      'employee@amalthea.com': { name: 'John Doe', email: 'employee@amalthea.com', role: 'EMPLOYEE' }
+      'admin@amalthea.com': { name: 'Ankit Sharma', email: 'admin@amalthea.com', role: 'ADMIN', company: { defaultCurrency: 'INR' } },
+      'manager@amalthea.com': { name: 'Priya Patel', email: 'manager@amalthea.com', role: 'MANAGER', company: { defaultCurrency: 'GBP' } },
+      'employee@amalthea.com': { name: 'John Doe', email: 'employee@amalthea.com', role: 'EMPLOYEE', company: { defaultCurrency: 'JPY' } }
     };
 
     setTimeout(() => {

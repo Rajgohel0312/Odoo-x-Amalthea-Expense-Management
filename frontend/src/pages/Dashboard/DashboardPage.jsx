@@ -19,6 +19,7 @@ import {
   Link,
   Badge
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles'; // <-- IMPORT THE useTheme HOOK
 import { useSelector } from 'react-redux';
 import {
   LineChart,
@@ -43,18 +44,13 @@ import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import RuleFolderIcon from '@mui/icons-material/RuleFolder';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 
-// --- MOCK DATA ---
-// This data simulates what we will get from the backend API.
-
-// Employee Data
+// --- MOCK DATA (Same as before) ---
 const employeeSummary = { pending: 325.00, approved: 1850.00, rejected: 1 };
 const recentEmployeeExpenses = [
   { id: 1, date: 'Oct 03, 2025', desc: 'Lunch Mtg', amount: 120.00, status: 'Pending' },
   { id: 2, date: 'Oct 01, 2025', desc: 'Software Sub', amount: 450.00, status: 'Pending' },
   { id: 3, date: 'Sep 28, 2025', desc: 'Client Dinner', amount: 120.00, status: 'Approved' },
 ];
-
-// Manager Data
 const managerApprovalQueue = [
     { id: 1, employee: 'John Doe', amount: 120.00, desc: 'Lunch Mtg' },
     { id: 2, employee: 'Jane Smith', amount: 450.00, desc: 'Software Sub' },
@@ -66,14 +62,8 @@ const recentTeamActivity = [
     { id: 2, employee: 'Jane Smith', desc: 'Software Sub', amount: 450.00, status: 'Pending' },
     { id: 3, employee: 'Mike Johnson', desc: 'Client Dinner', amount: 120.00, status: 'Approved' },
 ];
-const spendingCategories = [
-  { name: 'Travel', value: 40 },
-  { name: 'Food', value: 20 },
-  { name: 'Other', value: 10 },
-];
-const PIE_CHART_COLORS = ['#0A2540', '#00A86B', '#FFBB28']; // Dark Blue, Green, Yellow
-
-// Admin Data
+const spendingCategories = [ { name: 'Travel', value: 40 }, { name: 'Food', value: 20 }, { name: 'Other', value: 10 }];
+const PIE_CHART_COLORS = ['#0A2540', '#00A86B', '#FFBB28'];
 const companySpendingData = [
     { month: 'Jul', spent: 25000 }, { month: 'Aug', spent: 32000 },
     { month: 'Sep', spent: 35000 }, { month: 'Oct', spent: 42000 },
@@ -83,7 +73,6 @@ const recentSystemActivity = [
     "User 'John Doe' created.", "Approval rule 'Finance' updated.",
     "Company currency changed to USD.", "Sarah Chen escalated an expense.",
 ];
-
 
 // --- HELPER COMPONENTS ---
 const StatCard = ({ title, value, icon }) => (
@@ -104,7 +93,6 @@ const getStatusChipColor = (status) => {
     default: return 'default';
   }
 };
-
 
 // --- ROLE-SPECIFIC VIEWS ---
 
@@ -182,7 +170,10 @@ const ManagerView = () => (
     </Box>
 );
 
-const AdminView = () => (
+const AdminView = () => {
+  const theme = useTheme(); // <-- GET THE THEME OBJECT HERE
+
+  return (
     <Box>
         <Grid container spacing={3}>
             <Grid item xs={12} md={4}><StatCard title="Total Pending Approval" value="$125,800.50" icon={<PendingActionsIcon color="warning" sx={{ fontSize: 40 }} />} /></Grid>
@@ -191,7 +182,16 @@ const AdminView = () => (
             <Grid item xs={12}>
                 <Paper sx={{ p: 3, height: 350 }}>
                     <Typography variant="h6" component="h2" gutterBottom>Company Spending Overview (Last 6 Months)</Typography>
-                    <ResponsiveContainer width="100%" height="90%"><LineChart data={companySpendingData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="month" /><YAxis tickFormatter={(value) => `$${value/1000}k`} /><Tooltip formatter={(value) => `$${value.toLocaleString()}`} /><Line type="monotone" dataKey="spent" strokeWidth={3} stroke={theme.palette.primary.main} activeDot={{ r: 8 }} /></LineChart></ResponsiveContainer>
+                    <ResponsiveContainer width="100%" height="90%">
+                        <LineChart data={companySpendingData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="month" />
+                            <YAxis tickFormatter={(value) => `$${value/1000}k`} />
+                            <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                            {/* USE THE THEME OBJECT TO ACCESS THE COLOR */}
+                            <Line type="monotone" dataKey="spent" strokeWidth={3} stroke={theme.palette.primary.main} activeDot={{ r: 8 }} />
+                        </LineChart>
+                    </ResponsiveContainer>
                 </Paper>
             </Grid>
              <Grid item xs={12} md={6}>
@@ -214,16 +214,14 @@ const AdminView = () => (
              </Grid>
         </Grid>
     </Box>
-);
-
+  );
+};
 
 // This is the main component that decides which view to render.
 const DashboardPage = () => {
-  // We get the user's role from the Redux store.
   const user = useSelector((state) => state.auth.user);
 
   const renderDashboardByRole = () => {
-    // If we're still loading the user state or not authenticated, show a loader or empty state.
     if (!user) {
       return <Typography>Loading Dashboard...</Typography>;
     }
