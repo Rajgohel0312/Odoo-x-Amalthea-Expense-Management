@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AppBar, Toolbar, Typography, IconButton, Menu, MenuItem, Avatar, Box, Badge } from '@mui/material';
 import { useDispatch, useSelector } from 'react-redux';
-import { logout } from '../../features/authentication/authSlice';
+import { logout } from '../../features/authSlice';
 
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -23,7 +23,7 @@ const Header = () => {
     setAnchorEl(null);
   };
 
-  const handleLogout = () => {
+  const handleLogout = () => {  
     dispatch(logout());
     handleClose();
   };

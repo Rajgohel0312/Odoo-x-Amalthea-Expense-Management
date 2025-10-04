@@ -14,7 +14,7 @@ import {
 } from '@mui/material';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { loginSuccess } from '../../features/authentication/authSlice';
+import { loginSuccess } from '../../features/authSlice';
 
 // Import Icons
 import { Visibility, VisibilityOff } from '@mui/icons-material';
@@ -37,21 +37,29 @@ const LoginPage = () => {
     setLoading(true);
     setError('');
 
+    const mockUsers = {
+      'admin@amalthea.com': { name: 'Ankit Sharma', email: 'admin@amalthea.com', role: 'ADMIN' },
+      'manager@amalthea.com': { name: 'Priya Patel', email: 'manager@amalthea.com', role: 'MANAGER' },
+      'employee@amalthea.com': { name: 'John Doe', email: 'employee@amalthea.com', role: 'EMPLOYEE' }
+    };
+
     setTimeout(() => {
-      if (email === 'admin@amalthea.com' && password === 'password') {
-        const mockUserData = {
-          user: { name: 'Ankit Sharma', email: 'admin@amalthea.com', role: 'ADMIN' },
-          token: 'mock-jwt-token-string',
+      const user = mockUsers[email];
+
+      if (user && password === 'password') {
+        const userData = {
+          user: user,
+          token: `mock-jwt-token-for-${user.role.toLowerCase()}`,
         };
-        // Dispatch the loginSuccess action to update the Redux store
-        dispatch(loginSuccess(mockUserData));
-        // Navigate to the main dashboard page
+        
+        dispatch(loginSuccess(userData));
+        
         navigate('/');
       } else {
         setError('Invalid email or password. Please try again.');
         setLoading(false);
       }
-    }, 1500);
+    }, 1000); 
   };
 
   return (
