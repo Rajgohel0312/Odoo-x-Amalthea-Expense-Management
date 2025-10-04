@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-
+import  illu  from "../assets/illu.png";
 // Icons
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import RestaurantIcon from "@mui/icons-material/Restaurant";
@@ -184,7 +184,7 @@ const LandingPage = () => {
                 }}
                 onClick={() => navigate("/signup")}
               >
-                Sign Up
+                SIGN UP
               </Button>
             </Box>
           </Box>
@@ -373,11 +373,11 @@ const LandingPage = () => {
                 sx={{
                   p: 4,
                   borderRadius: 4,
-                  background: `linear-gradient(135deg, #fff, #f7f7f7)`,
+                  background: ``,
                 }}
               >
                 <img
-                  src="https://cdn.dribbble.com/userupload/7661804/file/original-22708b8c57935dbdc1457baf04dc46e9.png?resize=1200x900"
+                  src={illu}
                   alt="About Illustration"
                   style={{
                     width: "100%",
