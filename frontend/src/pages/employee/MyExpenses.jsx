@@ -1,65 +1,103 @@
 import { useEffect, useState } from "react";
+import { Container, Typography, CircularProgress, Chip, Box } from "@mui/material";
 import api from "../../api/axios";
-import ApprovalTimeline from "../../components/ApprovalTimeline.JSX";
+
 export default function MyExpenses() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [expenses, setExpenses] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    load();
+    loadExpenses();
   }, []);
 
-  const load = async () => {
+  const loadExpenses = async () => {
     setLoading(true);
     try {
-      const res = await api.get("/expenses/me");
-      setItems(res.data);
+      const res = await api.get("/expenses/me"); // 🔹 match your backend route
+      setExpenses(res.data);
     } catch (err) {
-      alert("Failed to load expenses");
+      console.error("Failed to load expenses", err);
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="p-6">
-      <h1 className="text-2xl mb-4">My Expenses</h1>
-      <div className="space-y-3">
-        {loading && <div>Loading...</div>}
-        {items.map((it) => (
-          <div key={it._id} className="bg-white p-4 rounded shadow">
-            <div className="flex justify-between">
-              <div>
-                <div className="font-medium">
-                  {it.description || "No description"}
-                </div>
-                <div className="text-sm text-gray-600">
-                  {it.category} • {new Date(it.dateSpent).toLocaleDateString()}
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="font-semibold">
-                  {it.amountInCompanyCurrency} {it.companyCurrency}
-                </div>
-                <div
-                  className={`text-sm ${
-                    it.status === "Approved"
-                      ? "text-green-600"
-                      : it.status === "Rejected"
-                      ? "text-red-600"
-                      : "text-yellow-600"
-                  }`}
-                >
-                  {it.status}
-                </div>
-              </div>
-            </div>
+  const getStatusColor = (status) => {
+    switch (status) {
+      case "Approved":
+        return "success";
+      case "Rejected":
+        return "error";
+      case "Draft":
+        return "default";
+      default:
+        return "warning";
+    }
+  };
 
-            <ApprovalTimeline approvals={it.approvals} />
-          </div>
-        ))}
-        {items.length === 0 && !loading && <div>No expenses yet</div>}
-      </div>
-    </div>
+  return (
+    <Container maxWidth="lg" sx={{ py: 5 }}>
+      <Typography variant="h4" fontWeight={700} mb={3}>
+        My Expenses
+      </Typography>
+
+      {loading ? (
+        <Box textAlign="center" mt={10}>
+          <CircularProgress />
+          <Typography mt={2} color="text.secondary">
+            Loading your expenses...
+          </Typography>
+        </Box>
+      ) : expenses.length === 0 ? (
+        <Box textAlign="center" mt={10}>
+          <Typography variant="h6" color="text.secondary">
+            No expenses found
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            You haven’t submitted any expense claims yet.
+          </Typography>
+        </Box>
+      ) : (
+        <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+          <table className="min-w-full text-sm text-left text-gray-700">
+            <thead className="bg-[#52a4b0] text-white">
+              <tr>
+                <th className="py-3 px-4 font-medium">Description</th>
+                <th className="py-3 px-4 font-medium">Category</th>
+                <th className="py-3 px-4 font-medium">Date</th>
+                <th className="py-3 px-4 font-medium text-right">Amount</th>
+                <th className="py-3 px-4 font-medium text-center">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {expenses.map((exp, index) => (
+                <tr
+                  key={exp._id}
+                  className={index % 2 === 0 ? "bg-gray-50" : "bg-white"}
+                >
+                  <td className="py-3 px-4">
+                    {exp.description || "No description"}
+                  </td>
+                  <td className="py-3 px-4">{exp.category || "-"}</td>
+                  <td className="py-3 px-4">
+                    {new Date(exp.dateSpent).toLocaleDateString()}
+                  </td>
+                  <td className="py-3 px-4 text-right font-semibold">
+                    ₹{exp.amountInCompanyCurrency} {exp.companyCurrency}
+                  </td>
+                  <td className="py-3 px-4 text-center">
+                    <Chip
+                      label={exp.status}
+                      color={getStatusColor(exp.status)}
+                      size="small"
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Container>
   );
 }

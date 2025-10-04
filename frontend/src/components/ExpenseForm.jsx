@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import api from "../api/axios";
+import { CircularProgress } from "@mui/material";
+import { CloudUpload, Refresh } from "@mui/icons-material";
 
 export default function ExpenseForm() {
   const [form, setForm] = useState({
     originalAmount: "",
-    originalCurrency: "USD",
+    originalCurrency: "",
     category: "",
     description: "",
     approvalRuleId: "",
@@ -14,28 +17,45 @@ export default function ExpenseForm() {
   const [file, setFile] = useState(null);
   const [ocrResult, setOcrResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState(null);
-  const [errorMessage, setErrorMessage] = useState(null);
+  const [currencyLoading, setCurrencyLoading] = useState(false);
 
   useEffect(() => {
     loadRules();
+    fetchCurrency();
   }, []);
 
   const loadRules = async () => {
     try {
-      const res = await api.get("/rules"); // ensure your backend has /rules endpoint
+      const res = await api.get("/rules");
       setRules(res.data || []);
-    } catch (err) {
-      console.error("Failed to load rules", err);
+    } catch {
+      toast.error("⚠️ Could not load approval rules");
     }
   };
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const fetchCurrency = async () => {
+    setCurrencyLoading(true);
+    try {
+      const loc = await fetch("https://ipapi.co/json/");
+      const data = await loc.json();
+      const code = data.country_code;
+      const countryRes = await fetch(`https://restcountries.com/v3.1/alpha/${code}`);
+      const countryData = await countryRes.json();
+      const currencyCode = Object.keys(countryData[0].currencies || {})[0] || "USD";
+      setForm((p) => ({ ...p, originalCurrency: currencyCode }));
+      toast.success(`Currency auto-detected: ${currencyCode}`);
+    } catch {
+      setForm((p) => ({ ...p, originalCurrency: "USD" }));
+      toast.error("Failed to detect currency. Defaulted to USD");
+    } finally {
+      setCurrencyLoading(false);
+    }
+  };
 
-  // ✅ Upload and OCR parse (calls backend)
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+
   const handleUploadAndParse = async () => {
-    if (!file) return alert("Please select a receipt file first!");
+    if (!file) return toast.error("Please select a receipt file first!");
     setLoading(true);
     try {
       const fd = new FormData();
@@ -47,39 +67,32 @@ export default function ExpenseForm() {
       const parsed = res.data.parsed;
       setOcrResult(parsed);
 
-      // Prefill form fields based on parsed OCR
       if (parsed) {
-        setForm((prev) => ({
-          ...prev,
-          originalAmount: parsed.amount || prev.originalAmount,
-          originalCurrency: parsed.currency || prev.originalCurrency,
-          description: parsed.description || prev.description,
+        setForm((p) => ({
+          ...p,
+          originalAmount: parsed.amount || p.originalAmount,
+          originalCurrency: parsed.currency || p.originalCurrency,
+          description: parsed.description || p.description,
           category:
             parsed.description?.includes("Hotel")
               ? "Hotel"
               : parsed.description?.includes("Restaurant")
               ? "Meals"
-              : prev.category,
+              : p.category,
         }));
       }
 
-      alert("✅ Receipt scanned successfully and fields auto-filled!");
-    } catch (err) {
-      console.error("OCR parse failed:", err);
-      alert("❌ OCR failed. Try again or upload a clearer image.");
+      toast.success("Receipt parsed & fields auto-filled!");
+    } catch {
+      toast.error("OCR failed. Try again with a clearer image.");
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ Handle expense submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSuccessMessage(null);
-    setErrorMessage(null);
-
-    if (!form.originalAmount || !form.originalCurrency)
-      return alert("Amount & currency are required!");
+    if (!form.originalAmount) return toast.error("Enter amount before submitting!");
 
     setLoading(true);
     try {
@@ -100,13 +113,10 @@ export default function ExpenseForm() {
       };
 
       const res = await api.post("/expenses", payload);
-      const ruleApplied = res.data?.rule || "Auto Rule Applied";
-      setSuccessMessage(`✅ Expense submitted under "${ruleApplied}".`);
-
-      // Reset form
+      toast.success(`Expense submitted successfully ✅`);
       setForm({
         originalAmount: "",
-        originalCurrency: "USD",
+        originalCurrency: form.originalCurrency,
         category: "",
         description: "",
         approvalRuleId: "",
@@ -115,82 +125,95 @@ export default function ExpenseForm() {
       setFile(null);
       setOcrResult(null);
     } catch (err) {
-      console.error("Submit failed:", err);
-      setErrorMessage(err.response?.data?.message || "Expense submission failed.");
+      console.error(err);
+      toast.error(err.response?.data?.message || "Failed to submit expense.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="bg-white p-6 shadow rounded-lg w-full max-w-2xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4 text-gray-800 border-b pb-2">
-        Add Expense
+    <div className="max-w-3xl mx-auto p-6 bg-white/90 backdrop-blur-md shadow-lg rounded-2xl border border-gray-200 mt-6">
+      <h2 className="text-3xl font-bold text-[#52a4b0] mb-6 text-center">
+        Add New Expense
       </h2>
 
-      {/* Alerts */}
-      {successMessage && (
-        <div className="bg-green-100 text-green-700 p-3 rounded mb-3 border border-green-300">
-          {successMessage}
-        </div>
-      )}
-      {errorMessage && (
-        <div className="bg-red-100 text-red-700 p-3 rounded mb-3 border border-red-300">
-          ❌ {errorMessage}
-        </div>
-      )}
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {/* AMOUNT + CURRENCY + CATEGORY */}
+        <div className="grid md:grid-cols-3 gap-4">
+          <div>
+            <label className="text-sm font-medium text-gray-700">Amount</label>
+            <input
+              name="originalAmount"
+              value={form.originalAmount}
+              onChange={handleChange}
+              type="number"
+              placeholder="Enter amount"
+              className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-[#52a4b0] outline-none"
+            />
+          </div>
 
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div className="grid md:grid-cols-3 gap-2">
-          <input
-            name="originalAmount"
-            value={form.originalAmount}
-            onChange={handleChange}
-            placeholder="Amount"
-            type="number"
-            min="0"
-            className="border p-2 w-full rounded"
-          />
-          <input
-            name="originalCurrency"
-            value={form.originalCurrency}
-            onChange={handleChange}
-            placeholder="Currency (USD)"
-            className="border p-2 w-full rounded"
-          />
-          <select
-            name="category"
-            value={form.category}
-            onChange={handleChange}
-            className="border p-2 w-full rounded"
-          >
-            <option value="">Category</option>
-            <option>Meals</option>
-            <option>Travel</option>
-            <option>Hotel</option>
-            <option>Office</option>
-            <option>Other</option>
-          </select>
+          <div>
+            <label className="text-sm font-medium text-gray-700">Currency</label>
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                name="originalCurrency"
+                value={form.originalCurrency}
+                readOnly
+                className="w-full border border-gray-300 rounded-lg p-2.5 bg-gray-50 cursor-not-allowed text-gray-600"
+              />
+              {currencyLoading && <CircularProgress size={20} />}
+              <button
+                type="button"
+                onClick={fetchCurrency}
+                className="p-1 text-[#52a4b0] hover:bg-gray-100 rounded"
+              >
+                <Refresh fontSize="small" />
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700">Category</label>
+            <select
+              name="category"
+              value={form.category}
+              onChange={handleChange}
+              className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-[#52a4b0] outline-none"
+            >
+              <option value="">Select Category</option>
+              <option>Meals</option>
+              <option>Travel</option>
+              <option>Hotel</option>
+              <option>Office</option>
+              <option>Other</option>
+            </select>
+          </div>
         </div>
 
-        <textarea
-          name="description"
-          value={form.description}
-          onChange={handleChange}
-          className="border p-2 w-full rounded"
-          placeholder="Description (optional)"
-        />
-
-        {/* Approval Rule Dropdown */}
+        {/* DESCRIPTION */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Select Approval Rule (optional)
+          <label className="text-sm font-medium text-gray-700">Description</label>
+          <textarea
+            name="description"
+            value={form.description}
+            onChange={handleChange}
+            placeholder="Enter a short description"
+            rows={3}
+            className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-[#52a4b0] outline-none resize-none"
+          />
+        </div>
+
+        {/* APPROVAL RULE */}
+        <div>
+          <label className="text-sm font-medium text-gray-700">
+            Approval Rule (optional)
           </label>
           <select
             name="approvalRuleId"
             value={form.approvalRuleId}
             onChange={handleChange}
-            className="border p-2 w-full rounded"
+            className="mt-1 w-full border border-gray-300 rounded-lg p-2.5 focus:ring-2 focus:ring-[#52a4b0] outline-none"
           >
             <option value="">Auto-select rule</option>
             {rules.map((r) => (
@@ -201,20 +224,27 @@ export default function ExpenseForm() {
           </select>
         </div>
 
-        {/* Upload + OCR Button */}
-        <div className="flex flex-wrap items-center gap-3">
-          <input
-            type="file"
-            accept="image/*,application/pdf"
-            onChange={(e) => setFile(e.target.files[0])}
-          />
+        {/* FILE UPLOAD + OCR */}
+        <div className="flex flex-wrap items-center gap-3 pt-2">
+          <label className="flex items-center gap-2 cursor-pointer bg-[#52a4b0]/10 text-[#52a4b0] hover:bg-[#52a4b0]/20 px-3 py-2 rounded-md transition">
+            <CloudUpload fontSize="small" />
+            <span>Upload Receipt</span>
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={(e) => setFile(e.target.files[0])}
+              className="hidden"
+            />
+          </label>
+
           <button
             type="button"
             onClick={handleUploadAndParse}
-            className="bg-gray-100 py-1 px-3 rounded hover:bg-gray-200 text-sm"
+            className="text-sm bg-gray-100 py-2 px-4 rounded hover:bg-gray-200 transition"
           >
             Parse Receipt (OCR)
           </button>
+
           <label className="ml-auto flex items-center gap-2 text-sm">
             <input
               type="checkbox"
@@ -225,10 +255,10 @@ export default function ExpenseForm() {
           </label>
         </div>
 
-        {/* OCR Result Display */}
+        {/* OCR Result */}
         {ocrResult && (
-          <div className="bg-gray-50 p-3 rounded text-sm border">
-            <b>OCR Result:</b>
+          <div className="bg-gray-50 p-3 rounded-lg text-sm border border-gray-200 mt-3">
+            <b className="block text-[#52a4b0] mb-1">Scanned Receipt Info</b>
             <div>Amount: {ocrResult.amount || "-"}</div>
             <div>Currency: {ocrResult.currency || "-"}</div>
             <div>Date: {ocrResult.date || "-"}</div>
@@ -237,23 +267,14 @@ export default function ExpenseForm() {
           </div>
         )}
 
-        {/* Submit + Reset */}
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            disabled={loading}
-            className={`py-2 px-4 rounded text-white ${
-              loading ? "bg-gray-400" : "bg-green-600 hover:bg-green-700"
-            }`}
-          >
-            {loading ? "Submitting..." : "Submit Expense"}
-          </button>
+        {/* ACTION BUTTONS */}
+        <div className="flex justify-end gap-3 pt-4">
           <button
             type="button"
             onClick={() => {
               setForm({
                 originalAmount: "",
-                originalCurrency: "USD",
+                originalCurrency: form.originalCurrency,
                 category: "",
                 description: "",
                 approvalRuleId: "",
@@ -261,12 +282,23 @@ export default function ExpenseForm() {
               });
               setFile(null);
               setOcrResult(null);
-              setSuccessMessage(null);
-              setErrorMessage(null);
+              toast("Form reset successfully", { icon: "🔄" });
             }}
-            className="bg-gray-100 hover:bg-gray-200 py-2 px-4 rounded"
+            className="py-2 px-5 rounded-md border border-gray-300 hover:bg-gray-100 transition"
           >
             Reset
+          </button>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className={`py-2 px-6 rounded-md text-white font-medium transition ${
+              loading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#52a4b0] hover:bg-[#4695a1]"
+            }`}
+          >
+            {loading ? "Submitting..." : "Submit Expense"}
           </button>
         </div>
       </form>

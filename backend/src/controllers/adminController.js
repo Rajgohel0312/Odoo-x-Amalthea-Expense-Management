@@ -21,8 +21,23 @@ const listApprovalRules = async (req, res) => {
 };
 
 const allExpenses = async (req, res) => {
-  const expenses = await Expense.find({ company: req.user.company._id }).populate('claimant approvals');
-  res.json(expenses);
+  try {
+    const expenses = await Expense.find({ company: req.user.company._id })
+      .populate('claimant', 'name email role') // Get employee info
+      .populate({
+        path: 'approvals',
+        populate: {
+          path: 'approver', // Nested populate inside approvals
+          select: 'name email role', // Only necessary fields
+        },
+      })
+      .sort({ createdAt: -1 }); // Latest first
+
+    res.json(expenses);
+  } catch (err) {
+    console.error("Error fetching expenses:", err);
+    res.status(500).json({ message: 'Failed to fetch expenses', error: err.message });
+  }
 };
 
 /** Admin override: set expense status directly */

@@ -1,22 +1,40 @@
 import { useEffect, useState } from "react";
 import api from "../../api/axios";
+import {
+  Box,
+  Paper,
+  Typography,
+  TextField,
+  Button,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Grid,
+  Divider,
+  Stack,
+  Chip,
+} from "@mui/material";
 
 export default function ApprovalRules() {
   const [rules, setRules] = useState([]);
   const [form, setForm] = useState({
     name: "",
     approvers: [{ type: "ManagerSlot", order: 1 }],
-    conditional: { type: "none", percentageRequired: 0, specificApprover: "" }
+    conditional: { type: "none", percentageRequired: 0, specificApprover: "" },
   });
   const [companyUsers, setCompanyUsers] = useState([]);
 
-  useEffect(() => { fetchRules(); fetchUsers(); }, []);
+  useEffect(() => {
+    fetchRules();
+    fetchUsers();
+  }, []);
 
   const fetchRules = async () => {
     try {
       const res = await api.get("/admin/approval-rules");
       setRules(res.data);
-    } catch (err) {
+    } catch {
       alert("Failed to load rules");
     }
   };
@@ -25,7 +43,7 @@ export default function ApprovalRules() {
     try {
       const res = await api.get("/users");
       setCompanyUsers(res.data);
-    } catch (err) { }
+    } catch {}
   };
 
   const addApproverSlot = () =>
@@ -33,8 +51,8 @@ export default function ApprovalRules() {
       ...form,
       approvers: [
         ...form.approvers,
-        { type: "Role", role: "Finance", order: form.approvers.length + 1 }
-      ]
+        { type: "Role", role: "Finance", order: form.approvers.length + 1 },
+      ],
     });
 
   const handleApproverChange = (idx, key, value) => {
@@ -46,7 +64,6 @@ export default function ApprovalRules() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // sanitize
       const payload = JSON.parse(JSON.stringify(form));
       if (payload.conditional?.specificApprover === "") {
         delete payload.conditional.specificApprover;
@@ -54,201 +71,343 @@ export default function ApprovalRules() {
       if (payload.conditional?.type === "none") {
         delete payload.conditional;
       }
-
       await api.post("/admin/approval-rules", payload);
-      alert("Rule created");
+      alert("Rule created successfully");
       setForm({
         name: "",
         approvers: [{ type: "ManagerSlot", order: 1 }],
-        conditional: { type: "none", percentageRequired: 0, specificApprover: "" }
+        conditional: { type: "none", percentageRequired: 0, specificApprover: "" },
       });
       fetchRules();
-    } catch (err) {
-      console.error("Create rule failed", err);
+    } catch {
       alert("Create rule failed");
     }
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Approval Rules</h1>
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* CREATE FORM */}
-        <div className="bg-white p-4 rounded shadow">
-          <h3 className="font-semibold mb-2">Create Rule</h3>
-          <form onSubmit={handleSubmit} className="space-y-2">
-            <input
-              required
-              className="border p-2 w-full"
-              placeholder="Rule name"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-            />
+    <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: "#fafafa", minHeight: "100vh" }}>
+      <Typography
+        variant="h5"
+        fontWeight={600}
+        mb={3}
+        sx={{ letterSpacing: 0.2, color: "#333" }}
+      >
+        Approval Rules
+      </Typography>
 
-            {/* Approver Steps */}
-            <div>
-              <h4 className="font-medium">Approver Steps</h4>
+      <Grid container spacing={3}>
+        {/* LEFT: Create Rule */}
+        <Grid item xs={12} md={6}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              border: "1px solid #e5e7eb",
+              bgcolor: "#fff",
+              transition: "0.2s ease",
+            }}
+          >
+            <Typography
+              variant="subtitle1"
+              fontWeight={600}
+              color="#333"
+              mb={2}
+            >
+              Create a New Rule
+            </Typography>
+
+            <Box component="form" onSubmit={handleSubmit}>
+              <TextField
+                label="Rule Name"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                fullWidth
+                required
+                size="small"
+                sx={{ mb: 2 }}
+              />
+
+              <Typography
+                variant="subtitle2"
+                fontWeight={600}
+                mb={1}
+                color="text.secondary"
+              >
+                Approver Steps
+              </Typography>
+
               {form.approvers.map((slot, idx) => (
-                <div key={idx} className="flex gap-2 items-center mb-2">
-                  <select
-                    value={slot.type}
-                    onChange={(e) => handleApproverChange(idx, "type", e.target.value)}
-                    className="border p-2"
+                <Paper
+                  key={idx}
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    mb: 2,
+                    borderRadius: 2,
+                    border: "1px solid #e5e7eb",
+                    bgcolor: "#fafafa",
+                  }}
+                >
+                  <Stack
+                    direction={{ xs: "column", sm: "row" }}
+                    spacing={2}
+                    alignItems="center"
                   >
-                    <option value="ManagerSlot">Manager (claimant's manager)</option>
-                    <option value="Role">Role</option>
-                    <option value="User">Specific User</option>
-                  </select>
+                    <FormControl sx={{ minWidth: 160 }} size="small">
+                      <InputLabel>Type</InputLabel>
+                      <Select
+                        value={slot.type}
+                        label="Type"
+                        onChange={(e) =>
+                          handleApproverChange(idx, "type", e.target.value)
+                        }
+                      >
+                        <MenuItem value="ManagerSlot">
+                          Manager (Claimant’s Manager)
+                        </MenuItem>
+                        <MenuItem value="Role">Role</MenuItem>
+                        <MenuItem value="User">Specific User</MenuItem>
+                      </Select>
+                    </FormControl>
 
-                  {slot.type === "Role" && (
-                    <input
-                      placeholder="Role (Finance)"
-                      className="border p-2"
-                      value={slot.role || ""}
-                      onChange={(e) => handleApproverChange(idx, "role", e.target.value)}
+                    {slot.type === "Role" && (
+                      <TextField
+                        label="Role (e.g. Finance)"
+                        value={slot.role || ""}
+                        onChange={(e) =>
+                          handleApproverChange(idx, "role", e.target.value)
+                        }
+                        size="small"
+                      />
+                    )}
+
+                    {slot.type === "User" && (
+                      <FormControl sx={{ minWidth: 200 }} size="small">
+                        <InputLabel>User</InputLabel>
+                        <Select
+                          value={slot.user || ""}
+                          label="User"
+                          onChange={(e) =>
+                            handleApproverChange(idx, "user", e.target.value)
+                          }
+                        >
+                          <MenuItem value="">-- Select User --</MenuItem>
+                          {companyUsers.map((u) => (
+                            <MenuItem key={u._id} value={u._id}>
+                              {u.name} ({u.role})
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    )}
+
+                    <TextField
+                      label="Order"
+                      type="number"
+                      value={slot.order}
+                      onChange={(e) =>
+                        handleApproverChange(idx, "order", Number(e.target.value))
+                      }
+                      size="small"
+                      sx={{ width: 100 }}
                     />
-                  )}
-                  {slot.type === "User" && (
-                    <select
-                      value={slot.user || ""}
-                      onChange={(e) => handleApproverChange(idx, "user", e.target.value)}
-                      className="border p-2"
-                    >
-                      <option value="">-- select user --</option>
-                      {companyUsers.map((u) => (
-                        <option key={u._id} value={u._id}>
-                          {u.name} ({u.role})
-                        </option>
-                      ))}
-                    </select>
-                  )}
-
-                  <input
-                    type="number"
-                    className="w-20 border p-2"
-                    value={slot.order}
-                    onChange={(e) =>
-                      handleApproverChange(idx, "order", Number(e.target.value))
-                    }
-                  />
-                </div>
+                  </Stack>
+                </Paper>
               ))}
-              <button
-                type="button"
-                onClick={addApproverSlot}
-                className="bg-gray-200 px-2 py-1 rounded"
-              >
-                + add step
-              </button>
-            </div>
 
-            {/* Conditional */}
-            <div className="mt-3">
-              <h4 className="font-medium">Conditional</h4>
-              <select
-                value={form.conditional.type}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    conditional: { ...form.conditional, type: e.target.value }
-                  })
-                }
-                className="border p-2 w-full mb-2"
+              <Button
+                variant="text"
+                onClick={addApproverSlot}
+                sx={{
+                  textTransform: "none",
+                  color: "#52a4b0",
+                  fontWeight: 500,
+                  "&:hover": { bgcolor: "#e8f5f7" },
+                }}
               >
-                <option value="none">None</option>
-                <option value="percentage">Percentage</option>
-                <option value="specific">Specific Approver</option>
-                <option value="hybrid">Hybrid</option>
-              </select>
+                + Add Step
+              </Button>
+
+              <Divider sx={{ my: 3 }} />
+
+              <Typography
+                variant="subtitle2"
+                fontWeight={600}
+                mb={1}
+                color="text.secondary"
+              >
+                Conditional Settings
+              </Typography>
+
+              <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+                <InputLabel>Condition Type</InputLabel>
+                <Select
+                  value={form.conditional.type}
+                  label="Condition Type"
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      conditional: {
+                        ...form.conditional,
+                        type: e.target.value,
+                      },
+                    })
+                  }
+                >
+                  <MenuItem value="none">None</MenuItem>
+                  <MenuItem value="percentage">Percentage</MenuItem>
+                  <MenuItem value="specific">Specific Approver</MenuItem>
+                  <MenuItem value="hybrid">Hybrid</MenuItem>
+                </Select>
+              </FormControl>
 
               {(form.conditional.type === "percentage" ||
                 form.conditional.type === "hybrid") && (
-                <input
+                <TextField
+                  label="Percentage Required"
                   type="number"
+                  size="small"
                   value={form.conditional.percentageRequired || 0}
                   onChange={(e) =>
                     setForm({
                       ...form,
                       conditional: {
                         ...form.conditional,
-                        percentageRequired: Number(e.target.value)
-                      }
+                        percentageRequired: Number(e.target.value),
+                      },
                     })
                   }
-                  placeholder="Percentage required (e.g., 60)"
-                  className="border p-2 w-full mb-2"
+                  fullWidth
+                  sx={{ mb: 2 }}
                 />
               )}
 
               {(form.conditional.type === "specific" ||
                 form.conditional.type === "hybrid") && (
-                <select
-                  value={form.conditional.specificApprover || ""}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      conditional: {
-                        ...form.conditional,
-                        specificApprover: e.target.value
-                      }
-                    })
-                  }
-                  className="border p-2 w-full"
-                >
-                  <option value="">
-                    -- select specific approver (CFO etc) --
-                  </option>
-                  {companyUsers.map((u) => (
-                    <option key={u._id} value={u._id}>
-                      {u.name} ({u.role})
-                    </option>
-                  ))}
-                </select>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Specific Approver</InputLabel>
+                  <Select
+                    value={form.conditional.specificApprover || ""}
+                    label="Specific Approver"
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        conditional: {
+                          ...form.conditional,
+                          specificApprover: e.target.value,
+                        },
+                      })
+                    }
+                  >
+                    <MenuItem value="">
+                      -- Select Specific Approver (CFO etc) --
+                    </MenuItem>
+                    {companyUsers.map((u) => (
+                      <MenuItem key={u._id} value={u._id}>
+                        {u.name} ({u.role})
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               )}
-            </div>
 
-            <div>
-              <button className="bg-blue-600 text-white py-2 px-3 rounded">
+              <Button
+                type="submit"
+                variant="contained"
+                fullWidth
+                sx={{
+                  mt: 3,
+                  bgcolor: "#52a4b0",
+                  textTransform: "none",
+                  fontWeight: 600,
+                  "&:hover": { bgcolor: "#3a8d99" },
+                }}
+              >
                 Create Rule
-              </button>
-            </div>
-          </form>
-        </div>
+              </Button>
+            </Box>
+          </Paper>
+        </Grid>
 
-        {/* EXISTING RULES */}
-        <div className="bg-white p-4 rounded shadow">
-          <h3 className="font-semibold mb-2">Existing Rules</h3>
-          <div>
-            {rules.map((r) => (
-              <div key={r._id} className="border p-3 mb-2 rounded">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="font-semibold">{r.name}</div>
-                    <div className="text-sm text-gray-600">
-                      Conditional: {r.conditional?.type || "none"}
-                    </div>
-                    <div className="text-sm mt-1">
+        {/* RIGHT: Existing Rules */}
+        <Grid item xs={12} md={6}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: 3,
+              borderRadius: 3,
+              border: "1px solid #e5e7eb",
+              bgcolor: "#fff",
+            }}
+          >
+            <Typography variant="subtitle1" fontWeight={600} mb={2} color="#333">
+              Existing Rules
+            </Typography>
+
+            {rules.length === 0 ? (
+              <Typography color="text.secondary" fontSize={14}>
+                No rules have been created yet.
+              </Typography>
+            ) : (
+              <Stack spacing={2}>
+                {rules.map((r) => (
+                  <Paper
+                    key={r._id}
+                    variant="outlined"
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      border: "1px solid #e5e7eb",
+                      transition: "0.2s ease",
+                      "&:hover": {
+                        borderColor: "#52a4b0",
+                        bgcolor: "#f9fefe",
+                      },
+                    }}
+                  >
+                    <Stack
+                      direction="row"
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
+                      <Typography fontWeight={600}>{r.name}</Typography>
+                      <Chip
+                        label={r.conditional?.type || "None"}
+                        size="small"
+                        sx={{
+                          bgcolor: "#e0f3f5",
+                          color: "#11646c",
+                          fontWeight: 500,
+                        }}
+                      />
+                    </Stack>
+
+                    <Divider sx={{ my: 1.5 }} />
+
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      fontWeight={500}
+                    >
                       Steps:
-                      <ul className="list-disc ml-5">
-                        {r.approvers.map((a) => (
-                          <li
-                            key={a._id || `${a.type}-${a.order}`}
-                          >
-                            {a.type} {a.role ? `(${a.role})` : ""}{" "}
-                            {a.user ? `(user ${a.user.name || a.user})` : ""} - order{" "}
-                            {a.order}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {rules.length === 0 && <div>No rules</div>}
-          </div>
-        </div>
-      </div>
-    </div>
+                    </Typography>
+                    <ul style={{ marginLeft: 20, color: "#555", marginTop: 4 }}>
+                      {r.approvers.map((a) => (
+                        <li key={a._id || `${a.type}-${a.order}`}>
+                          {a.type} {a.role ? `(${a.role})` : ""}{" "}
+                          {a.user ? `(user ${a.user.name || a.user})` : ""} —{" "}
+                          Order {a.order}
+                        </li>
+                      ))}
+                    </ul>
+                  </Paper>
+                ))}
+              </Stack>
+            )}
+          </Paper>
+        </Grid>
+      </Grid>
+    </Box>
   );
 }

@@ -9,6 +9,7 @@ const userRoutes = require("./src/routes/users");
 const expenseRoutes = require("./src/routes/expenses");
 const approvalRoutes = require("./src/routes/approvals");
 const adminRoutes = require("./src/routes/admin");
+const employeeRoutes = require("./src/routes/employeeRoutes");
 
 const PORT = process.env.PORT || 4000;
 const app = express();
@@ -26,7 +27,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/manager", require("./src/routes/managerRoutes"));
 app.use("/api/approvals", require("./src/routes/approvalRoutes"));
 app.use("/api/rules", require("./src/routes/ruleRoutes"));
-
+app.use("/api/employee", employeeRoutes);
 connectDB(process.env.MONGO_URI)
   .then(() => {
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
