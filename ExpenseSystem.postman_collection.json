@@ -1,0 +1,132 @@
+{
+  "info": {
+    "name": "Expense Management System",
+    "_postman_id": "12345678-abcd-efgh-ijkl-9876543210",
+    "description": "Postman collection for testing Expense System API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Signup",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Alice\",\n  \"email\": \"alice@demo.com\",\n  \"password\": \"alice123\",\n  \"companyName\": \"Acme Corp\",\n  \"country\": \"India\",\n  \"currency\": \"INR\"\n}"
+        },
+        "url": { "raw": "http://localhost:4000/api/auth/signup", "host": ["http://localhost:4000"], "path": ["api", "auth", "signup"] }
+      }
+    },
+    {
+      "name": "Auth - Login (Admin)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@demo.com\",\n  \"password\": \"admin123\"\n}"
+        },
+        "url": { "raw": "http://localhost:4000/api/auth/login", "host": ["http://localhost:4000"], "path": ["api", "auth", "login"] }
+      }
+    },
+    {
+      "name": "Admin - Create User",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Bob Employee\",\n  \"email\": \"bob@demo.com\",\n  \"password\": \"bob123\",\n  \"role\": \"Employee\"\n}"
+        },
+        "url": { "raw": "http://localhost:4000/api/users", "host": ["http://localhost:4000"], "path": ["api", "users"] }
+      }
+    },
+    {
+      "name": "Admin - List Users",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": { "raw": "http://localhost:4000/api/users", "host": ["http://localhost:4000"], "path": ["api", "users"] }
+      }
+    },
+    {
+      "name": "Employee - Submit Expense",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{employeeToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"originalAmount\": 50,\n  \"originalCurrency\": \"USD\",\n  \"category\": \"Meals\",\n  \"description\": \"Team lunch\",\n  \"submit\": true\n}"
+        },
+        "url": { "raw": "http://localhost:4000/api/expenses", "host": ["http://localhost:4000"], "path": ["api", "expenses"] }
+      }
+    },
+    {
+      "name": "Employee - My Expenses",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{employeeToken}}" }],
+        "url": { "raw": "http://localhost:4000/api/expenses/me", "host": ["http://localhost:4000"], "path": ["api", "expenses", "me"] }
+      }
+    },
+    {
+      "name": "Manager - Pending Approvals",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{managerToken}}" }],
+        "url": { "raw": "http://localhost:4000/api/approvals/pending", "host": ["http://localhost:4000"], "path": ["api", "approvals", "pending"] }
+      }
+    },
+    {
+      "name": "Manager - Approve Expense",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{managerToken}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"decision\": \"Approved\",\n  \"comments\": \"Looks good\"\n}"
+        },
+        "url": { "raw": "http://localhost:4000/api/approvals/{{approvalId}}/decide", "host": ["http://localhost:4000"], "path": ["api", "approvals", "{{approvalId}}", "decide"] }
+      }
+    },
+    {
+      "name": "Admin - Create Approval Rule",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Default Rule\",\n  \"approvers\": [\n    {\"type\": \"ManagerSlot\", \"order\": 1},\n    {\"type\": \"Role\", \"role\": \"Finance\", \"order\": 2}\n  ],\n  \"conditional\": {\"type\": \"percentage\", \"percentageRequired\": 60}\n}"
+        },
+        "url": { "raw": "http://localhost:4000/api/admin/approval-rules", "host": ["http://localhost:4000"], "path": ["api", "admin", "approval-rules"] }
+      }
+    },
+    {
+      "name": "Admin - List All Expenses",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": { "raw": "http://localhost:4000/api/admin/expenses", "host": ["http://localhost:4000"], "path": ["api", "admin", "expenses"] }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "token", "value": "" },
+    { "key": "employeeToken", "value": "" },
+    { "key": "managerToken", "value": "" },
+    { "key": "approvalId", "value": "" }
+  ]
+}
